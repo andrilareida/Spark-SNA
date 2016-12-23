@@ -18,16 +18,14 @@ object test {
     val day = 15
     val year = 2016
     val maxTorrents = 50
-    val query = "FROM torrentsperip A, dailysharedtorrents.B  SELECT infohash, peeruid " +
-      "WHERE A.peeruid = B.peeruid" +
-      " AND B.year = A.year" +
-      " AND B.month = A.month" +
-      " AND B.day = B.day" +
-      " AND A.year = " + year +
-      " AND A.month = " + month +
-      " AND A.day = " + day +
-      " AND B.shared <= " + maxTorrents + ")" +
-      "GROUP BY infohash, peeruid"
+    val query = "FROM torrentsperip A, dailysharedtorrents B" +
+      " SELECT A.infohash, A.peeruid " +
+      " WHERE A.peeruid = B.peeruid" +
+      " AND B.year = A.year = " + year +
+      " AND B.month = A.month = " + month +
+      " AND B.day = B.day = " + day +
+      " AND B.shared <= " + maxTorrents +
+      "GROUP BY A.infohash, A.peeruid;"
    // log.info(query)
     val peertorrents = sqlContext.sql(query)
 
