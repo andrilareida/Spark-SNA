@@ -14,17 +14,21 @@ object test {
 
     val month = 5
     val day = 15
-    val maxTorrents = 50;
-    val peertorrents = sqlContext.sql("FROM torrentsperip SELECT infohash, peeruid " +
-      "WHERE year = 2016" +
-      "month = " + month +
+    val year = 2016
+    val maxTorrents = 50
+    val query = "FROM torrentsperip SELECT infohash, peeruid " +
+      "WHERE year = " + year +
+      " month = " + month +
       " AND day = " + day +
-      " AND ip NOT EXISTS IN " +
-      "(select ip FROM dailysharedtorrents " +
-      " WHERE year = 2016" +
+      " AND peeruid NOT EXISTS IN " +
+      "(FROM dailysharedtorrents SELECT peeruid" +
+      " WHERE year = " + year +
       " AND month = " + month +
       " AND day = " + day +
-      " AND shared <= " + maxTorrents + ")")
+      " AND shared > " + maxTorrents + ")" +
+      "GROUP BY infohash, peeruid"
+    println(query)
+    val peertorrents = sqlContext.sql(query)
 
     peertorrents.map(pt => (pt(1), pt(0))).groupByKey()
       .flatMap{case (peer: String, hashes: Iterable[String]) =>
@@ -48,7 +52,7 @@ object test {
         }
       })
     }
-    return s.toArray
+    s.toArray
   }
 
 }
