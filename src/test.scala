@@ -1,3 +1,6 @@
+import org.apache.log4j.LogManager
+import org.apache.log4j.nt.NTEventLogAppender
+import org.apache.spark.sql.catalyst.expressions.Log
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
@@ -9,9 +12,8 @@ object test {
   def main(args: Array[String]) {
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
-
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
-
+   // val log = LogManager.getRootLogger
     val month = 5
     val day = 15
     val year = 2016
@@ -27,8 +29,9 @@ object test {
       " AND day = " + day +
       " AND shared > " + maxTorrents + ")" +
       "GROUP BY infohash, peeruid"
-    println(query)
+   // log.info(query)
     val peertorrents = sqlContext.sql(query)
+
 
     peertorrents.map(pt => (pt(1), pt(0))).groupByKey()
       .flatMap{case (peer: String, hashes: Iterable[String]) =>

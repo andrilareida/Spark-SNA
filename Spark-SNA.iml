@@ -138,7 +138,7 @@
     <orderEntry type="library" scope="PROVIDED" name="Maven: org.tachyonproject:tachyon-underfs-local:0.8.2" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: net.razorvine:pyrolite:4.9" level="project" />
     <orderEntry type="library" scope="PROVIDED" name="Maven: net.sf.py4j:py4j:0.9" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.spark-project.spark:unused:1.0.0" level="project" />
-    <orderEntry type="library" scope="PROVIDED" name="Maven: org.apache.spark:spark-assembly_2.10:1.6.0" level="project" />
+    <orderEntry type="library" name="Maven: org.spark-project.spark:unused:1.0.0" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.spark:spark-assembly_2.10:1.6.0" level="project" />
   </component>
 </module>
