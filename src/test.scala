@@ -25,7 +25,7 @@ object test {
       " AND B.month = A.month = " + month +
       " AND B.day = B.day = " + day +
       " AND B.shared <= " + maxTorrents +
-      "GROUP BY A.infohash, A.peeruid;"
+      " GROUP BY A.infohash, A.peeruid;"
    // log.info(query)
     val peertorrents = sqlContext.sql(query)
 
