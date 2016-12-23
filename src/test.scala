@@ -20,12 +20,12 @@ object test {
     val maxTorrents = 50
     val query = "FROM torrentsperip A, dailysharedtorrents.B  SELECT infohash, peeruid " +
       "WHERE A.peeruid = B.peeruid" +
-      " AND A.year = " + year +
-      " AND A.month = " + month +
-      " AND A.day = " + day +
       " AND B.year = A.year" +
       " AND B.month = A.month" +
       " AND B.day = B.day" +
+      " AND A.year = " + year +
+      " AND A.month = " + month +
+      " AND A.day = " + day +
       " AND B.shared <= " + maxTorrents + ")" +
       "GROUP BY infohash, peeruid"
    // log.info(query)
