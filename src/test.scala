@@ -20,7 +20,7 @@ object test {
     val maxTorrents = 50
     val query = "FROM torrentsperip SELECT infohash, peeruid " +
       "WHERE year = " + year +
-      " month = " + month +
+      " AND month = " + month +
       " AND day = " + day +
       " AND peeruid NOT EXISTS IN " +
       "(FROM dailysharedtorrents SELECT peeruid" +
