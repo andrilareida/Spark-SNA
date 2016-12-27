@@ -36,10 +36,10 @@ object test {
       " GROUP BY A.infohash, A.peeruid"
    log.info(query)
     val peertorrents = sqlContext.sql(query)
-
+  log.info(peertorrents.head())
   // val peertorrents = sc.textFile("sparktestdata.csv").flatMap(line => line.split("\"))
    val blah = peertorrents.map(record => (record(1), record(0)))
-    blah.collect().foreach(println)
+    //blah.collect().foreach(println)
     val group = blah.groupByKey()
 
     val edges=group.flatMap{case (peer: String, hashes: Iterable[String]) =>
