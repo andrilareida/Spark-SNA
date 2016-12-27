@@ -31,7 +31,7 @@ object test {
       " AND B.year = A.year = " + year +
       " AND B.month = A.month = " + month +
       " AND B.day = A.day = " + day +
-      " AND B.hour = A.hour = 1" +
+      " AND A.hour = 1" +
       " AND B.shared <= " + maxTorrents +
       " GROUP BY A.infohash, A.peeruid"
    log.info(query)
