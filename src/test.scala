@@ -11,7 +11,7 @@ import scala.collection.mutable.ArrayBuffer
   */
 object test {
   def main(args: Array[String]) {
-    System.setProperty("hadoop.home.dir", "C:\\Program Files\\Java");
+    //System.setProperty("hadoop.home.dir", "C:\\Program Files\\Java")
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Torrent Net").setMaster("local"))
 
@@ -30,8 +30,8 @@ object test {
       " WHERE A.peeruid = B.peeruid" +
       " AND B.year = A.year = " + year +
       " AND B.month = A.month = " + month +
-      " AND B.day = B.day = " + day +
-      " AND B.hour = B.hour = 1" +
+      " AND B.day = A.day = " + day +
+      " AND B.hour = A.hour = 1" +
       " AND B.shared <= " + maxTorrents +
       " GROUP BY A.infohash, A.peeruid"
    log.info(query)
