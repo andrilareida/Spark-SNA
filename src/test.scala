@@ -20,9 +20,6 @@ object test {
 
     //val textFile = sc.textFile("test.csv").map(line => line.split("\t"))
 
-
-
-
     val log = LogManager.getRootLogger
     val month = 5
     val day = 15
