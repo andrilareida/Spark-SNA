@@ -15,39 +15,40 @@ object test {
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Torrent Net").setMaster("local"))
 
-    val textFile = sc.textFile("test.csv").map(line => line.split("\t"))
+    // sc is an existing SparkContext.
+    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+
+    //val textFile = sc.textFile("test.csv").map(line => line.split("\t"))
 
 
 
 
-    // val log = LogManager.getRootLogger
+    val log = LogManager.getRootLogger
     val month = 5
     val day = 15
     val year = 2016
     val maxTorrents = 50
-   /* val query = "FROM torrentsperip A, dailysharedtorrents B" +
+   val query = "FROM torrentsperip A, dailysharedtorrents B" +
       " SELECT A.infohash, A.peeruid " +
       " WHERE A.peeruid = B.peeruid" +
       " AND B.year = A.year = " + year +
       " AND B.month = A.month = " + month +
       " AND B.day = B.day = " + day +
+      " AND B.hour = B.hour = 1" +
       " AND B.shared <= " + maxTorrents +
       " GROUP BY A.infohash, A.peeruid"
-   // log.info(query)
+   log.info(query)
     val peertorrents = sqlContext.sql(query)
-    */
+
   // val peertorrents = sc.textFile("sparktestdata.csv").flatMap(line => line.split("\"))
-   val blah = textFile.map(record => (record(1), record(0)))
+   val blah = peertorrents.map(record => (record(1), record(0)))
     blah.collect().foreach(println)
     val group = blah.groupByKey()
 
-    group.collect().foreach(println)
-
     val edges=group.flatMap{case (peer: String, hashes: Iterable[String]) =>
-        permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _).collect()
+        permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _)
 
-      /*.saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
-*/
+      edges.saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
   }
 
   def permutation( iter:Iterable[String] ) : Array[String] ={
