@@ -13,7 +13,7 @@ object test {
   def main(args: Array[String]) {
     //System.setProperty("hadoop.home.dir", "C:\\Program Files\\Java")
     // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Spark Torrent Net").setMaster("local"))
+    val sc = new SparkContext(new SparkConf().setAppName("Spark Torrent Net"))
 
     // sc is an existing SparkContext.
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
