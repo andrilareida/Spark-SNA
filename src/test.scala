@@ -15,10 +15,10 @@ object test {
 
     val maxTorrents = 50
     val year = 2016
-    val month = 5 to 7
-    month.foreach(m => {
+    val months = 5 to 7
+    months.foreach(month => {
       val cal = new GregorianCalendar()
-      cal.set(year, m-1, 1)
+      cal.set(year, month-1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       days.foreach(day => {
 
