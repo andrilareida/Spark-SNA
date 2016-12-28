@@ -18,23 +18,28 @@ object test {
     val day = 15
     val year = 2016
     val maxTorrents = 50
-    val query = "FROM torrentsperip A, dailysharedtorrents B" +
-      " SELECT A.infohash, A.peeruid " +
-      " WHERE A.peeruid = B.peeruid" +
-      " AND B.year = A.year = " + year +
-      " AND B.month = A.month = " + month +
-      " AND B.day = B.day = " + day +
-      " AND B.shared <= " + maxTorrents +
-      " GROUP BY A.infohash, A.peeruid" +
-      " LIMIT 1000"
-   // log.info(query)
+    val query = " SELECT A.infohash, A.peeruid" +
+      "FROM torrentsperip A JOIN dailysharedtorrents B" +
+      "ON ( A.peeruid = B.peeruid" +
+      "AND B.year = A.year " +
+      "AND B.month = A.month " +
+      "AND B.day = A.day )" +
+      "AND A.year = " + year + " " +
+      "AND A.month = " + month + " " +
+      "AND A.day = " + day + " " +
+      "AND B.shared between 1 and " + maxTorrents + " " +
+      "GROUP BY A.infohash, A.peeruid"
     val peertorrents = sqlContext.sql(query)
 
 
-    peertorrents.map(pt => (pt(1), pt(0))).groupByKey()
-      .flatMap{case (peer: String, hashes: Iterable[String]) =>
-        permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _)
-      .saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
+    val group = peertorrents.select("infohash", "peeruid")
+      .map(record => (record(1), record(0)))
+      .groupByKey()
+
+    val edges=group.flatMap{case (peer: String, hashes: Iterable[String]) =>
+      permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _)
+
+    edges.saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
 
   }
 
