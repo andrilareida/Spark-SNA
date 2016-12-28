@@ -18,8 +18,9 @@ object test {
     val day = 15
     val year = 2016
     val maxTorrents = 50
-    val query = " SELECT A.infohash, A.peeruid" +
-      "FROM torrentsperip A JOIN dailysharedtorrents B" +
+    val query =
+      "FROM torrentsperip A JOIN dailysharedtorrents B " +
+      "SELECT A.infohash, A.peeruid " +
       "ON ( A.peeruid = B.peeruid" +
       "AND B.year = A.year " +
       "AND B.month = A.month " +
