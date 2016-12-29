@@ -1,4 +1,6 @@
-import java.util.{Calendar, Date, GregorianCalendar}
+import org.apache.log4j.LogManager
+import org.apache.log4j.nt.NTEventLogAppender
+import org.apache.spark.sql.catalyst.expressions.Log
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
@@ -11,40 +13,32 @@ object test {
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
-   // val log = LogManager.getRootLogger
-
-    val maxTorrents = 50
+    val month = 5
+    val day = 15
     val year = 2016
-    val month = 7
-    //months.foreach(month => {
-      val cal = new GregorianCalendar()
-      cal.set(year, month-1, 1)
-      val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-      days.foreach(day => {
+    val maxTorrents = 100
+    val query = " SELECT A.infohash, A.peeruid" +
+      "FROM torrentsperip A JOIN dailysharedtorrents B" +
+      "ON ( A.peeruid = B.peeruid" +
+      "AND B.year = A.year " +
+      "AND B.month = A.month " +
+      "AND B.day = A.day )" +
+      "AND A.year = " + year + " " +
+      "AND A.month = " + month + " " +
+      "AND A.day = " + day + " " +
+      "AND B.shared between 1 and " + maxTorrents + " " +
+      "GROUP BY A.infohash, A.peeruid"
+    val peertorrents = sqlContext.sql(query)
 
-        val query = "SELECT A.infohash, A.peeruid " +
-          "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
-          "ON ( A.peeruid = B.peeruid " +
-          "AND B.year = A.year " +
-          "AND B.month = A.month " +
-          "AND B.day = A.day ) " +
-          "AND A.year = " + year + " " +
-          "AND A.month = " + month + " " +
-          "AND A.day = " + day + " " +
-          "AND B.shared between 1 and " + maxTorrents + " " +
-          "GROUP BY A.infohash, A.peeruid"
-        val peertorrents = sqlContext.sql(query)
-        val group = peertorrents.select("infohash", "peeruid")
-          .map(record => (record(1), record(0)))
-          .groupByKey()
 
-        val edges = group.flatMap { case (peer: String, hashes: Iterable[String]) =>
-          permutation(hashes).map(edge => (edge, 1))
-        }.reduceByKey(_ + _)
+    val group = peertorrents.select("infohash", "peeruid")
+      .map(record => (record(1), record(0)))
+      .groupByKey()
 
-        edges.saveAsTextFile("/user/viola/torrentnet/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
-      })
-    //})
+    val edges=group.flatMap{case (peer: String, hashes: Iterable[String]) =>
+      permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _)
+
+    edges.saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
 
   }
 
