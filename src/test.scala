@@ -30,7 +30,6 @@ object test {
       "GROUP BY A.infohash, A.peeruid"
     val peertorrents = sqlContext.sql(query)
 
-
     val group = peertorrents.select("infohash", "peeruid")
       .map(record => (record(1), record(0)))
       .groupByKey()
@@ -38,7 +37,7 @@ object test {
     val edges=group.flatMap{case (peer: String, hashes: Iterable[String]) =>
       permutation(hashes).map(edge => (edge, 1))}.reduceByKey(_ + _)
 
-    edges.saveAsTextFile("/user/viola/torrentnet/"+month+"/"+day+"/")
+    edges.saveAsTextFile("/user/viola/torrentnet/maxtorrents"+maxTorrents + "/" +month+"/"+day+"/")
 
   }
 
