@@ -12,8 +12,8 @@ object test {
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val maxTorrents = 100
     val year = 2016
-    val months = 5 to 7
-    months.foreach(f = month => {
+    val months = 7 to 7
+    months.foreach(month => {
       val cal = new GregorianCalendar()
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
