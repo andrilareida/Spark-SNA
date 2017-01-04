@@ -1,16 +1,17 @@
 import java.util.{Calendar, GregorianCalendar}
+
 import org.apache.spark.{SparkConf, SparkContext}
-import scala.collection.mutable.ArrayBuffer
 
 /**
-  * Created by Andri on 21.12.2016.
+  * Created by Andri on 04.01.2017.
   */
-object torrentNet {
+object PeerNet {
+
+//Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
-    // create Spark context with Spark configuration
     if (args.length < 5) {
-      println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
-      sys.exit(1)
+    println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
+    sys.exit(1)
     }
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
@@ -44,11 +45,9 @@ object torrentNet {
           Perm.permutation(hashes).map(edge => (edge, 1))
         }.reduceByKey(_ + _)
 
-        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile("/user/viola/torrentnet/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
+        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile(args(5) + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
-    }
+  }
 
-
-
-    }
+}
