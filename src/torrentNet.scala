@@ -15,7 +15,7 @@ object torrentNet {
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
-    val delimiter = args(4)
+    val delimiter = "\t"
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
     val months = args(1).toInt to args(2).toInt
@@ -44,7 +44,7 @@ object torrentNet {
           Perm.permutation(hashes).map(edge => (edge, 1))
         }.reduceByKey(_ + _)
 
-        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile(args(5) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
+        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
     }
