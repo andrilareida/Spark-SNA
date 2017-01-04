@@ -5,14 +5,15 @@ import scala.collection.mutable.ArrayBuffer
 /**
   * Created by Andri on 21.12.2016.
   */
-object test {
+object torrentNet {
   def main(args: Array[String]) {
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
+    val delimiter = "\t"
     val maxTorrents = 100
     val year = 2016
-    val months = 7 to 7
+    val months = 5 to 7
     months.foreach(month => {
       val cal = new GregorianCalendar()
       cal.set(year, month - 1, 1)
@@ -35,30 +36,14 @@ object test {
           .groupByKey()
 
         val edges = group.flatMap { case (peer: String, hashes: Iterable[String]) =>
-          permutation(hashes).map(edge => (edge, 1))
+          Perm.permutation(hashes).map(edge => (edge, 1))
         }.reduceByKey(_ + _)
 
-        edges.saveAsTextFile("/user/viola/torrentnet/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
+        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile("/user/viola/torrentnet/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
     }
 
-      def permutation(iter: Iterable[String]): Array[String] = {
-        val list = iter.toArray[String]
-        var s = ArrayBuffer.empty[String]
-        for (x <- 0 to (list.length - 2)) {
-          val first = list(x)
-          list.drop(x + 1).foreach(blah => {
-            if (first.compareTo(blah) < 0) {
-              //println(first + "\t" + blah)
-              s += (first + "\t" + blah)
-            } else if (first.compareTo(blah) > 0) {
-              // println(blah + "\t" + first)
-              s += (blah + "\t" + first)
-            }
-          })
-        }
-        s.toArray
-      }
+
 
     }
