@@ -29,7 +29,7 @@ object CountryNet {
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       days.foreach(day => {
-        val query = "SELECT A.infohash, A.peeruid, A.country, A.asnumber" +
+        val query = "SELECT A.infohash, A.peeruid, A.country, A.asnumber " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
           "ON ( A.peeruid = B.peeruid " +
           "AND B.year = A.year " +
