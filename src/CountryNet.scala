@@ -15,7 +15,7 @@ object CountryNet {
     sys.exit(1)
     }
     // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
+    val sc = new SparkContext(new SparkConf().setAppName("Country Net"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val delimiter = "\t"
     val maxTorrents = args(3).toInt
@@ -42,11 +42,11 @@ object CountryNet {
           .map(record => (record(0),record(1)))
           .groupByKey()
 
-        val edges = group.flatMap { case (peer: String, hashes: Iterable[String]) =>
-          Perm.permutation(hashes).map(edge => (edge, 1))
-        }.reduceByKey(_ + _)
+        val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
+          Perm.permutation(countries).map(edge => (edge, 1))
+        }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
 
-        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile(args(4) + "/maxTorrents" + maxTorrents + "/" + month + "/" + day + "/")
+          edges.saveAsTextFile(args(4) + "/maxTorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
   }

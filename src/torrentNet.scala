@@ -13,7 +13,7 @@ object torrentNet {
       sys.exit(1)
     }
     // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Spark Count"))
+    val sc = new SparkContext(new SparkConf().setAppName("Torrent Net"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val delimiter = "\t"
     val maxTorrents = args(3).toInt
