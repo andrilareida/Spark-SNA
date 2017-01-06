@@ -39,7 +39,7 @@ object CountryNet {
           "AND A.month = " + month + " " +
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
-          "GROUP BY A.infohash, A.peeruid"
+          "GROUP BY A.infohash, A.peeruid, A.country, A.asnumber"
         val peertorrents = sqlContext.sql(query)
         val group = peertorrents.select("infohash", "country")
           .map(record => (record(0),record(1)))
