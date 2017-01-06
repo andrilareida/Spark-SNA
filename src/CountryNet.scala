@@ -6,9 +6,6 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri on 04.01.2017.
   */
 
-case class CountryPeer(id: String, country: String)
-case class Country(country: String, peers: Int)
-
 object CountryNet {
 
 //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
@@ -49,8 +46,8 @@ object CountryNet {
           Perm.permutation(hashes).map(edge => (edge, 1))
         }.reduceByKey(_ + _)
 
-        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2).saveAsTextFile(args(4) +
-          "/maxTorrents" + maxTorrents + "/" + month + "/" + day + "/")
+        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+          .saveAsTextFile(args(4) + "/maxTorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
   }
