@@ -46,7 +46,7 @@ object CountryNet {
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
 
-          edges.saveAsTextFile(args(4) + "/maxTorrents" + maxTorrents + "/" + month + "/" + day + "/")
+          edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
   }
