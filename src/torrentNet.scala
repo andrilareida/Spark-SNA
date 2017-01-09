@@ -1,13 +1,14 @@
 import java.util.{Calendar, GregorianCalendar}
 import org.apache.spark.{SparkConf, SparkContext}
-import scala.collection.mutable.ArrayBuffer
+
 
 /**
   * Created by Andri on 21.12.2016.
   */
 object torrentNet {
+
+  //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
-    // create Spark context with Spark configuration
     if (args.length < 5) {
       println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
       sys.exit(1)
@@ -42,14 +43,10 @@ object torrentNet {
 
         val edges = group.flatMap { case (peer: String, hashes: Iterable[String]) =>
           Perm.permutation(hashes).map(edge => (edge, 1))
-        }.reduceByKey(_ + _)
+        }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
 
-        edges.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-          .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
+        edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
       })
     })
-    }
-
-
-
-    }
+  }
+}

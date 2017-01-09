@@ -1,11 +1,10 @@
 import java.util.{Calendar, GregorianCalendar}
-
 import org.apache.spark.{SparkConf, SparkContext}
+
 
 /**
   * Created by Andri on 04.01.2017.
   */
-
 object CountryNet {
 
 //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
@@ -46,9 +45,8 @@ object CountryNet {
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
 
-          edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/")
+          edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
     })
   }
-
 }
