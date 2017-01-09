@@ -38,7 +38,7 @@ object CountryNet {
           "GROUP BY A.infohash, A.peeruid, A.country, A.asnumber"
         val peertorrents = sqlContext.sql(query)
         val group = peertorrents.select("infohash", "country")
-          .map(record => (record(0),record(1)))
+          .map(record => (record(0).toString,record(1).toString))
           .groupByKey()
 
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
