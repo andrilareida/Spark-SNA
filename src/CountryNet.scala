@@ -18,7 +18,9 @@ object CountryNet {
 
     val log = Logger.getLogger(getClass.getName)
     // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Country Net"))
+    val sc = new SparkContext(new SparkConf().setAppName("Country Net")
+      .set("spark.executor.memory", "16GB")
+      .set("spark.yarn.executor.memoryOverhead", "4GB"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val delimiter = "\t"
     val maxTorrents = args(3).toInt
