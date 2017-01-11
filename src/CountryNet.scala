@@ -33,7 +33,7 @@ object CountryNet {
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
         log.info("Month: " + month + " Day: " + day)
-        val query = "SELECT A.infohash, A.peeruid, A.country, A.asnumber " +
+        val query = "SELECT A.infohash, A.country " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
           "ON ( A.peeruid = B.peeruid " +
           "AND B.year = A.year " +
@@ -43,16 +43,19 @@ object CountryNet {
           "AND A.month = " + month + " " +
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
-          "GROUP BY A.infohash, A.peeruid, A.country, A.asnumber"
+          "GROUP BY A.infohash, A.country"
         val pt = sqlContext.sql(query)
-        val group = pt.select(pt.col("infohash"), pt.col("country")).where(pt.col("country").isNotNull).map(record => (record(0).toString,record(1).toString))
+        val group = pt.select(pt.col("infohash"), pt.col("country"))
+          .where(pt.col("country").isNotNull
+            .and(pt.col("country").notEqual("null")))
+          .map(record => (record(0).toString,record(1).toString))
           .groupByKey()
         log.info("Output after group:" + group.count() + " first: " + group.first())
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
        // log.info("Edges to write: " + edges.count() + "first: " + edges.first())
-
+        edges.collect()
         edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
     })
