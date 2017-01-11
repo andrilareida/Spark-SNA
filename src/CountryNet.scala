@@ -51,7 +51,7 @@ object CountryNet {
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-        log.info("Edges to write: " + edges.count() + "first: " + edges.first())
+       // log.info("Edges to write: " + edges.count() + "first: " + edges.first())
 
         edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
