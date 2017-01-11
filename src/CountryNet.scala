@@ -47,7 +47,7 @@ object CountryNet {
         val pt = sqlContext.sql(query)
         val group = pt.select(pt.col("infohash").and(pt.col("country"))).where(pt.col("country").isNotNull).map(record => (record(0).toString,record(1).toString))
           .groupByKey()
-        log.info("Output after group:" + group.count())
+        log.info("Output after group:" + group.count() + " first: " + group.first())
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
