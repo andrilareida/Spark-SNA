@@ -31,7 +31,7 @@ object CountryNet {
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
-        log.info("Month: " + month + "Day: " + day)
+        log.info("Month: " + month + " Day: " + day)
         val query = "SELECT A.infohash, A.peeruid, A.country, A.asnumber " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
           "ON ( A.peeruid = B.peeruid " +
@@ -44,8 +44,7 @@ object CountryNet {
           "AND B.shared between 1 and " + maxTorrents + " " +
           "GROUP BY A.infohash, A.peeruid, A.country, A.asnumber"
         val peertorrents = sqlContext.sql(query)
-        val group = peertorrents.select("infohash", "country")
-          .map(record => (record(0).toString,record(1).toString))
+        val group = peertorrents.map(record => (record(0).toString,record(2).toString))
           .groupByKey()
         log.info("Output adter group:" + group.count())
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
