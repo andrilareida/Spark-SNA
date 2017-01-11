@@ -44,8 +44,8 @@ object CountryNet {
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
           "GROUP BY A.infohash, A.peeruid, A.country, A.asnumber"
-        val peertorrents = sqlContext.sql(query)
-        val group = peertorrents.map(record => (record(0).toString,record(2).toString))
+        val pt = sqlContext.sql(query)
+        val group = pt.where(pt.col("country").isNotNull).map(record => (record(0).toString,record(2).toString))
           .groupByKey()
         log.info("Output adter group:" + group.count())
         val edges = group.flatMap { case (infohash: String, countries: Iterable[String]) =>
