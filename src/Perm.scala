@@ -5,7 +5,7 @@ import scala.collection.mutable.ArrayBuffer
   * Produces a random
   */
 
-case class Edge(from: String, to: String)
+case class Edge(from: String, to: String, weight: Int)
 
 object Perm {
   def permutation(iter: Iterable[String]): Array[Edge] = {
@@ -15,9 +15,9 @@ object Perm {
       val first = list(x)
       list.drop(x + 1).foreach(blah => {
         if (first.compareTo(blah) < 0) {
-          s += Edge(first, blah)
+          s += Edge(first, blah, 1)
         } else if (first.compareTo(blah) > 0) {
-          s += Edge(blah, first)
+          s += Edge(blah, first, 1)
         }
       })
     }
