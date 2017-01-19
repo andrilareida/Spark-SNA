@@ -6,7 +6,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
   * Created by Andri Lareida on 04.01.2017.
   */
-object CountryNet {
+object ASNet {
 
 //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
@@ -32,7 +32,7 @@ object CountryNet {
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
         log.info("Month: " + month + " Day: " + day)
-        val query = "SELECT A.infohash, A.country " +
+        val query = "SELECT A.infohash, A.asnumber " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
           "ON ( A.peeruid = B.peeruid " +
           "AND B.year = A.year " +
@@ -42,11 +42,11 @@ object CountryNet {
           "AND A.month = " + month + " " +
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
-          "GROUP BY A.infohash, A.country"
+          "GROUP BY A.infohash, A.asnumber"
         val pt = sqlContext.sql(query)
-        val stage1 = pt.select(pt.col("infohash"), pt.col("country"))
-          .where(pt.col("country").isNotNull
-            .and(pt.col("country").notEqual("null")))
+        val stage1 = pt.select(pt.col("infohash"), pt.col("asnumber"))
+          .where(pt.col("asnumber").isNotNull
+            .and(pt.col("asnumber").notEqual(0)))
 
         val stage2 = stage1.map(
           record => (record(0).toString,record(1).toString))

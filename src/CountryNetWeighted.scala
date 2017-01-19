@@ -3,10 +3,16 @@ import java.util.{Calendar, GregorianCalendar}
 import org.apache.log4j.Logger
 import org.apache.spark.{SparkConf, SparkContext}
 
+import scala.collection.mutable.ArrayBuffer
+
+
 /**
-  * Created by Andri Lareida on 04.01.2017.
+  * Created by Andri on 04.01.2017.
   */
-object CountryNet {
+object CountryNetWeighted {
+
+
+  case class WeightedCountry(country: String, weight: Int)
 
 //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
@@ -30,9 +36,11 @@ object CountryNet {
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       log.info("Going through days: " + days.toString())
+
+
       days.foreach(day => {
         log.info("Month: " + month + " Day: " + day)
-        val query = "SELECT A.infohash, A.country " +
+        val query = "SELECT A.infohash, A.country, count(distinct(A.peeruid)) as weight " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
           "ON ( A.peeruid = B.peeruid " +
           "AND B.year = A.year " +
@@ -44,20 +52,35 @@ object CountryNet {
           "AND B.shared between 1 and " + maxTorrents + " " +
           "GROUP BY A.infohash, A.country"
         val pt = sqlContext.sql(query)
-        val stage1 = pt.select(pt.col("infohash"), pt.col("country"))
+        val group = pt.select(pt.col("infohash"), pt.col("country"), pt.col("weight"))
           .where(pt.col("country").isNotNull
             .and(pt.col("country").notEqual("null")))
-
-        val stage2 = stage1.map(
-          record => (record(0).toString,record(1).toString))
+          .map(record => (record(0).toString, WeightedCountry(record(1).toString, record(2).asInstanceOf[Int])))
           .groupByKey()
-
-        val stage3 = stage2.flatMap { case (infohash: String, countries: Iterable[String]) =>
-          Perm.permutation(countries).map(edge => (edge, 1))
+        log.info("Output after group:" + group.count() + " first: " + group.first())
+        val edges = group.flatMap { case (infohash: String, countries: Iterable[WeightedCountry]) =>
+          permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-        stage3.collect()
-        stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
+       // log.info("Edges to write: " + edges.count() + "first: " + edges.first())
+        edges.collect()
+        edges.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
     })
+  }
+
+  def permutation(iter: Iterable[WeightedCountry]): Array[Edge] = {
+    val list = iter.toArray[WeightedCountry]
+    var s = ArrayBuffer.empty[Edge]
+    for (x <- 0 to (list.length - 2)) {
+      val first = list(x)
+      list.drop(x + 1).foreach(blah => {
+        if (first.country.compareTo(blah.country) < 0) {
+          s += Edge(first.country, blah.country, Math.min(first.weight, blah.weight))
+        } else if (first.country.compareTo(blah.country) > 0) {
+          s += Edge(blah.country, first.country, Math.min(first.weight, blah.weight))
+        }
+      })
+    }
+    s.toArray
   }
 }
