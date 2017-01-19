@@ -55,7 +55,6 @@ object ASNet {
         val stage3 = stage2.flatMap { case (infohash: String, countries: Iterable[String]) =>
           Perm.permutation(countries).map(edge => (edge, 1))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-        stage3.collect()
         stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
     })
