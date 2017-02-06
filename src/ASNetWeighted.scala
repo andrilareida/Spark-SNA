@@ -63,10 +63,11 @@ object ASNetWeighted {
             record.getDouble(3),
             record.getString(4))))
           .groupByKey()
-
+        stage2.count()
         val stage3 = stage2.flatMap { case (infohash: String, records: Iterable[ASrecord]) =>
           permutation(records).map(edge => (DirectedEdge(edge.from, edge.to), edge.weight))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+        stage3.count()
         stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
 
