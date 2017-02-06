@@ -7,7 +7,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri Lareida on 04.01.2017.
   */
 
-case class ASrecord(infohash : String, ASnumber: Int,  peers: Int, size: Double, unit: String)
+case class ASrecord(infohash : String, ASnumber: Int,  peers: Long, size: Double, unit: String)
 case class DirectedWeightedEdge(from: String, to: String, weight: Double)
 case class DirectedEdge(from: String, to: String)
 
@@ -59,7 +59,7 @@ object ASNetWeighted {
         val stage2 = pt.map(
           record => (record.getString(0), ASrecord(record.getString(0),
             record.getInt(1),
-            record.getInt(2),
+            record.getLong(2),
             record.getDouble(3),
             record.getString(4))))
           .groupByKey()
@@ -68,6 +68,7 @@ object ASNetWeighted {
           permutation(records).map(edge => (DirectedEdge(edge.from, edge.to), edge.weight))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
         stage3.count()
+
         stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
 
