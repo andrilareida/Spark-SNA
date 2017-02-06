@@ -8,7 +8,8 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 
 case class ASrecord(infohash : String, ASnumber: Int,  peers: Int, size: Double, unit: String)
-case class DirectedEdge(from: String, to: String, weight: Double)
+case class DirectedWeightedEdge(from: String, to: String, weight: Double)
+case class DirectedEdge(from: String, to: String)
 
 object ASNetWeighted {
 
@@ -49,7 +50,7 @@ object ASNetWeighted {
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
           "AND A.asnumber <> 0 " +
-          "GROUP BY A.infohash, A.asnumber"
+          "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
         val pt = sqlContext.sql(query)
        /* val stage1 = pt.select(pt.col("infohash"), pt.col("asnumber"))
           .where(pt.col("asnumber").isNotNull
@@ -64,7 +65,7 @@ object ASNetWeighted {
           .groupByKey()
 
         val stage3 = stage2.flatMap { case (infohash: String, records: Iterable[ASrecord]) =>
-          permutation(records).map(edge => (edge, 1))
+          permutation(records).map(edge => (DirectedEdge(edge.from, edge.to), edge.weight))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
         stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
@@ -74,13 +75,13 @@ object ASNetWeighted {
 
   }
 
-  def permutation(iter: Iterable[ASrecord]): Array[DirectedEdge] = {
+  def permutation(iter: Iterable[ASrecord]): Array[DirectedWeightedEdge] = {
     val totalPeers = iter.map(_.peers).sum
-    var buf = new scala.collection.mutable.ArrayBuffer[DirectedEdge]()
+    var buf = new scala.collection.mutable.ArrayBuffer[DirectedWeightedEdge]()
 
     iter.foreach(record => {
       val size=record.peers * record.size * matchUnit(record.unit) / scala.math.pow(1024,3)
-      buf=buf.++(iter.map(source => DirectedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers)))
+      buf=buf.++(iter.map(source => DirectedWeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers)))
     })
     buf.toArray
   }
