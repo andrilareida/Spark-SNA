@@ -61,7 +61,7 @@ object ASNetWeighted {
           record => (record.getString(0), ASrecord(record.getString(0),
             record.getInt(1),
             record.getLong(2),
-            record.getDouble(3),
+            record.getFloat(3).toDouble,
             record.getString(4))))
           .groupByKey()
 
