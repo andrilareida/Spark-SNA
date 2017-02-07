@@ -52,7 +52,6 @@ object ASNetWeighted {
           "AND A.month = " + month + " " +
           "AND A.day = " + day + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
-          "AND A.hour = 0 " +
           "AND A.asnumber <> 0 " +
           "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
         val pt = sqlContext.sql(query)
