@@ -31,9 +31,10 @@ object ASNetWeighted {
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
     val months = args(1).toInt to args(2).toInt
-
+    val hours = 0 to 23
     log.info("Going through months: " + months.toString())
     months.foreach(month => {
+      hours.foreach(hour => {
       val cal = new GregorianCalendar()
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
@@ -51,31 +52,30 @@ object ASNetWeighted {
           "AND A.year = " + year + " " +
           "AND A.month = " + month + " " +
           "AND A.day = " + day + " " +
+          "AND A.hour = " + hour + " " +
           "AND B.shared between 1 and " + maxTorrents + " " +
           "AND A.asnumber <> 0 " +
           "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
         val pt = sqlContext.sql(query)
-       /* val stage1 = pt.select(pt.col("infohash"), pt.col("asnumber"))
-          .where(pt.col("asnumber").isNotNull
-            .and(pt.col("asnumber").notEqual(0)))*/
 
         val stage2 = pt.map(
           record => (record.getString(0), ASrecord(record.getInt(1),
             record.getLong(2),
-            record.getFloat(3).toDouble*matchUnit(record.getString(4)))))
+            record.getFloat(3).toDouble * matchUnit(record.getString(4)))))
           .groupByKey()
 
-        if(debug)
+        if (debug)
           stage2.count()
 
         val stage3 = stage2.flatMap { case (infohash: String, records: Iterable[ASrecord]) =>
           permutation(records).map(edge => (DirectedEdge(edge.from, edge.to), edge.weight))
         }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
 
-        if(debug)
+        if (debug)
           stage3.count()
 
-        stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
+        stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour)
+      })
       })
     })
 
