@@ -8,7 +8,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   */
 
 case class ASrecord(ASnumber: Int,  peers: Long, size: Double)
-case class DirectedWeightedEdge(from: String, to: String, weight: Double)
+case class WeightedEdge(from: String, to: String, weight: Double)
 case class DirectedEdge(from: String, to: String)
 
 object ASNetWeighted {
@@ -82,16 +82,24 @@ object ASNetWeighted {
 
   }
 
-  def permutation(iter: Iterable[ASrecord]): Array[DirectedWeightedEdge] = {
+  def permutation(iter: Iterable[ASrecord]): Array[WeightedEdge] = {
     val totalPeers = iter.map(_.peers).sum
-    var buf = scala.collection.mutable.ArrayBuffer.empty[DirectedWeightedEdge]
-
-    iter.foreach(record => {
+    var buf = scala.collection.mutable.ArrayBuffer.empty[WeightedEdge]
+    val list = iter.toArray[ASrecord]
+    for (x <- 0 to (list.length - 2)) {
+      val record = list(x)
       val size=record.peers * record.size / scala.math.pow(1024,3)
-      buf ++= iter.map(source => DirectedWeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers))
+      list.drop(x + 1).foreach(source =>{
+        if (record.ASnumber <= source.ASnumber) {
+          buf+=WeightedEdge(record.ASnumber.toString, source.ASnumber.toString, size * source.peers / totalPeers)
+        } else if (record.ASnumber > source.ASnumber) {
+          buf+=WeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers)
+        }
     })
+    }
     buf.toArray
   }
+
   def matchUnit(unit: Any): Double = unit match {
     case "KB" => scala.math.pow(1024,1)
     case "MB" => scala.math.pow(1024,2)
