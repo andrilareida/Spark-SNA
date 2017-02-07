@@ -34,12 +34,13 @@ object ASNetWeighted {
     val hours = 0 to 23
     log.info("Going through months: " + months.toString())
     months.foreach(month => {
-      hours.foreach(hour => {
+
       val cal = new GregorianCalendar()
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
+        hours.foreach(hour => {
         log.info("Month: " + month + " Day: " + day)
         val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
           "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
