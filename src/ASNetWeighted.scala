@@ -7,7 +7,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri Lareida on 04.01.2017.
   */
 
-case class ASrecord(infohash : String, ASnumber: Int,  peers: Long, size: Double, unit: String)
+case class ASrecord(ASnumber: Int,  peers: Long, size: Double)
 case class DirectedWeightedEdge(from: String, to: String, weight: Double)
 case class DirectedEdge(from: String, to: String)
 
@@ -61,11 +61,9 @@ object ASNetWeighted {
             .and(pt.col("asnumber").notEqual(0)))*/
 
         val stage2 = pt.map(
-          record => (record.getString(0), ASrecord(record.getString(0),
-            record.getInt(1),
+          record => (record.getString(0), ASrecord(record.getInt(1),
             record.getLong(2),
-            record.getFloat(3).toDouble,
-            record.getString(4))))
+            record.getFloat(3).toDouble*matchUnit(record.getString(4)))))
           .groupByKey()
 
         if(debug)
@@ -80,19 +78,17 @@ object ASNetWeighted {
 
         stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
       })
-
-
     })
 
   }
 
   def permutation(iter: Iterable[ASrecord]): Array[DirectedWeightedEdge] = {
     val totalPeers = iter.map(_.peers).sum
-    var buf = new scala.collection.mutable.ArrayBuffer[DirectedWeightedEdge]()
+    var buf = scala.collection.mutable.ArrayBuffer.empty[DirectedWeightedEdge]
 
     iter.foreach(record => {
-      val size=record.peers * record.size * matchUnit(record.unit) / scala.math.pow(1024,3)
-      buf=buf.++(iter.map(source => DirectedWeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers)))
+      val size=record.peers * record.size / scala.math.pow(1024,3)
+      buf ++= iter.map(source => DirectedWeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers))
     })
     buf.toArray
   }
