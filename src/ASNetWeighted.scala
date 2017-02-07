@@ -19,17 +19,19 @@ object ASNetWeighted {
     println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
     sys.exit(1)
     }
+    val debug = if (args.length == 6) args(5).equals("debug")  else false
 
     val log = Logger.getLogger(getClass.getName)
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Country Net")
-      .set("spark.executor.memory", "26g"))
+      .set("spark.executor.memory", "26g")
+      .set("spark.yarn.executor.memoryOverhead","4096"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val delimiter = "\t"
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
     val months = args(1).toInt to args(2).toInt
-    val debug = args(5).equals("debug")
+
     log.info("Going through months: " + months.toString())
     months.foreach(month => {
       val cal = new GregorianCalendar()
