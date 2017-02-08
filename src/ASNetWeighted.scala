@@ -44,9 +44,8 @@ object ASNetWeighted {
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
-        hours.foreach(hour => {
           log.info("Month: " + month + " Day: " + day)
-          val result1 = stage1(sqlContext, year, month, day, hour, maxTorrents)
+          val result1 = stage1(sqlContext, year, month, day, maxTorrents)
           if (debug)
             result1.count()
           val result2 = stage2(result1)
@@ -60,14 +59,13 @@ object ASNetWeighted {
             result3.count()
 
           result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-            .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour)
+            .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
         })
       })
-    })
 
   }
 
-  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int, hour: Int, maxTorrents: Int): DataFrame = {
+  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int,  maxTorrents: Int): DataFrame = {
     val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
       "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
       "ON ( A.peeruid = B.peeruid " +
@@ -79,7 +77,6 @@ object ASNetWeighted {
       "AND A.year = " + year + " " +
       "AND A.month = " + month + " " +
       "AND A.day = " + day + " " +
-      "AND A.hour = " + hour + " " +
       "AND B.shared between 1 and " + maxTorrents + " " +
       "AND A.asnumber <> 0 " +
       "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
