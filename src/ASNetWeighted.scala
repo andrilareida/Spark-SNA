@@ -1,31 +1,35 @@
 import java.util.{Calendar, GregorianCalendar}
 
 import org.apache.log4j.Logger
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
   * Created by Andri Lareida on 04.01.2017.
   */
 
-case class ASrecord(ASnumber: Int,  peers: Long, size: Double)
+case class ASrecord(ASnumber: Int, peers: Long, size: Double)
+
 case class WeightedEdge(from: String, to: String, weight: Double)
+
 case class DirectedEdge(from: String, to: String)
 
 object ASNetWeighted {
-
-//Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
+  private val log = Logger.getLogger(getClass.getName)
+  //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
     if (args.length < 5) {
-    println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
-    sys.exit(1)
+      println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
+      sys.exit(1)
     }
-    val debug = if (args.length == 6) args(5).equals("debug")  else false
+    val debug = if (args.length == 6) args(5).equals("debug") else false
 
-    val log = Logger.getLogger(getClass.getName)
+
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Country Net")
       .set("spark.executor.memory", "26g")
-      .set("spark.yarn.executor.memoryOverhead","4096"))
+      .set("spark.yarn.executor.memoryOverhead", "4096"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val delimiter = "\t"
     val maxTorrents = args(3).toInt
@@ -41,69 +45,78 @@ object ASNetWeighted {
       log.info("Going through days: " + days.toString())
       days.foreach(day => {
         hours.foreach(hour => {
-        log.info("Month: " + month + " Day: " + day)
-        val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
-          "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
-          "ON ( A.peeruid = B.peeruid " +
-          "AND B.year = A.year " +
-          "AND B.month = A.month " +
-          "AND B.day = A.day ) " +
-          "JOIN torrents as C " +
-          "ON (A.infohash = C.info_hash) " +
-          "AND A.year = " + year + " " +
-          "AND A.month = " + month + " " +
-          "AND A.day = " + day + " " +
-          "AND A.hour = " + hour + " " +
-          "AND B.shared between 1 and " + maxTorrents + " " +
-          "AND A.asnumber <> 0 " +
-          "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
-        val pt = sqlContext.sql(query)
+          log.info("Month: " + month + " Day: " + day)
+          val result1 = stage1(sqlContext, year, month, day, hour, maxTorrents)
+          if (debug)
+            result1.count()
+          val result2 = stage2(result1)
 
-        val stage2 = pt.map(
-          record => (record.getString(0), ASrecord(record.getInt(1),
-            record.getLong(2),
-            record.getFloat(3).toDouble * matchUnit(record.getString(4)))))
-          .groupByKey()
+          if (debug)
+            result2.count()
 
-        if (debug)
-          stage2.count()
+          val result3 = stage3(result2)
 
-        val stage3 = stage2.flatMap { case (infohash: String, records: Iterable[ASrecord]) =>
-          permutation(records).map(edge => (DirectedEdge(edge.from, edge.to), edge.weight))
-        }.reduceByKey(_ + _).map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+          if (debug)
+            result3.count()
 
-        if (debug)
-          stage3.count()
-
-        stage3.saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour)
-      })
+          result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+            .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour)
+        })
       })
     })
 
   }
 
-  def permutation(iter: Iterable[ASrecord]): Array[WeightedEdge] = {
-    val totalPeers = iter.map(_.peers).sum
-    var buf = scala.collection.mutable.ArrayBuffer.empty[WeightedEdge]
-    val list = iter.toArray[ASrecord]
-    for (x <- 0 to (list.length - 2)) {
-      val record = list(x)
-      val size=record.peers * record.size / scala.math.pow(1024,3)
-      list.drop(x + 1).foreach(source =>{
-        if (record.ASnumber <= source.ASnumber) {
-          buf+=WeightedEdge(record.ASnumber.toString, source.ASnumber.toString, size * source.peers / totalPeers)
-        } else if (record.ASnumber > source.ASnumber) {
-          buf+=WeightedEdge(source.ASnumber.toString, record.ASnumber.toString, size * source.peers / totalPeers)
-        }
-    })
-    }
-    buf.toArray
+  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int, hour: Int, maxTorrents: Int): DataFrame = {
+    val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
+      "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
+      "ON ( A.peeruid = B.peeruid " +
+      "AND B.year = A.year " +
+      "AND B.month = A.month " +
+      "AND B.day = A.day ) " +
+      "JOIN torrents as C " +
+      "ON (A.infohash = C.info_hash) " +
+      "AND A.year = " + year + " " +
+      "AND A.month = " + month + " " +
+      "AND A.day = " + day + " " +
+      "AND A.hour = " + hour + " " +
+      "AND B.shared between 1 and " + maxTorrents + " " +
+      "AND A.asnumber <> 0 " +
+      "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
+    sqc.sql(query)
+  }
+
+  def stage2(stage1: DataFrame): RDD[(String, Iterable[ASrecord])] = {
+    stage1.map(
+      record => (record.getString(0), ASrecord(record.getInt(1),
+        record.getLong(2),
+        record.getFloat(3).toDouble * matchUnit(record.getString(4)))))
+      .groupByKey()
+  }
+
+  def stage3(stage2: RDD[(String, Iterable[ASrecord])]): RDD[(DirectedEdge,Double)] = {
+
+    stage2.values.collect().map(l =>combine(stage2.context.parallelize(l.toSeq)))
+      .reduce(_ ++ _).reduceByKey(_ + _)
   }
 
   def matchUnit(unit: Any): Double = unit match {
-    case "KB" => scala.math.pow(1024,1)
-    case "MB" => scala.math.pow(1024,2)
-    case "GB" => scala.math.pow(1024,3)
+    case "KB" => scala.math.pow(1024, 1)
+    case "MB" => scala.math.pow(1024, 2)
+    case "GB" => scala.math.pow(1024, 3)
     case _ => 1
+  }
+
+  def combine(swarm: RDD[ASrecord]): RDD[(DirectedEdge, Double)] = {
+    val totalPeers = swarm.map(_.peers).sum
+    val result = swarm.cartesian(swarm).filter{ case (a: ASrecord,b: ASrecord)=> a.ASnumber < b.ASnumber}
+      .map{case (a: ASrecord, b: ASrecord) =>
+        (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
+      }
+    result
+  }
+
+  def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double): Double ={
+    a.peers * b.peers * a.size /( scala.math.pow(1024, 3) * totalPeers)
   }
 }
