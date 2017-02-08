@@ -95,11 +95,10 @@ object ASNetWeighted {
   }
 
   def stage3(stage2: RDD[(String, Iterable[ASrecord])]): RDD[(DirectedEdge,Double)] = {
-
-    stage2.values.collect().map(l =>combine(stage2.context.parallelize(l.toSeq)))
-      .reduce(stage2.context.union(_,_)).reduceByKey(_ + _)
-
-
+      stage2.context.union(
+        stage2.values.collect().map(l =>
+          combine(stage2.context.parallelize(l.toSeq))
+        )).reduceByKey(_ + _)
   }
 
   def matchUnit(unit: Any): Double = unit match {
