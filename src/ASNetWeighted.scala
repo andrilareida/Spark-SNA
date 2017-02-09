@@ -17,6 +17,7 @@ case class DirectedEdge(from: String, to: String)
 
 object ASNetWeighted {
   private val log = Logger.getLogger(getClass.getName)
+  val delimiter = "\t"
   //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
     if (args.length < 5) {
@@ -28,14 +29,12 @@ object ASNetWeighted {
 
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Country Net")
-      .set("spark.executor.memory", "26g")
-      .set("spark.yarn.executor.memoryOverhead", "4096"))
+      .set("spark.executor.memory", "28g")
+      .set("spark.yarn.executor.memoryOverhead", "16096"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
-    val delimiter = "\t"
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
     val months = args(1).toInt to args(2).toInt
-    val hours = 0 to 23
     log.info("Going through months: " + months.toString())
     months.foreach(month => {
 
