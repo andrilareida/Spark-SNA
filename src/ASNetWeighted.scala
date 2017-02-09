@@ -29,8 +29,10 @@ object ASNetWeighted {
 
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("Country Net")
-      .set("spark.executor.memory", "28g")
-      .set("spark.yarn.executor.memoryOverhead", "16096"))
+      .set("spark.executor.memory", "20g")
+      .set("spark.driver.cores", "8")
+      .set("spark.executor.cores", "8")
+      .set("spark.driver.memory","8g"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
