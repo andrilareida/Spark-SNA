@@ -27,27 +27,33 @@ object ASNetWeightedDriver {
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
-    val month = args(1).toInt
-    val day=  args(2).toInt
-         val cal = new GregorianCalendar()
+    val months = args(1).toInt to args(2).toInt
+    log.info("Going through months: " + months.toString())
+    months.foreach(month => {
+      val cal = new GregorianCalendar()
       cal.set(year, month - 1, 1)
       val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
-          log.info("Month: " + month + " Day: " + day)
-          val result1 = stage1(sqlContext, year, month, day, maxTorrents)
-          if (debug)
-            result1.count()
-          val result2 = stage2(result1)
+      log.info("Going through days: " + days.toString())
+      days.foreach(day => {
+        log.info("Month: " + month + " Day: " + day)
+        val result1 = stage1(sqlContext, year, month, day, maxTorrents)
+        if (debug)
+          result1.count()
+        val result2 = stage2(result1)
 
-          if (debug)
-            result2.count()
+        if (debug)
+          result2.count()
 
-          val result3 = stage3(result2)
+        val result3 = stage3(result2)
 
-          if (debug)
-            result3.count()
+        if (debug)
+          result3.count()
 
-          result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-            .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
+        result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+          .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
+
+      })
+    })
   }
 
   def stage1(sqc: SQLContext, year: Int, month: Int, day: Int,  maxTorrents: Int): DataFrame = {
