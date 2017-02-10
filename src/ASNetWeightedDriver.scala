@@ -9,13 +9,8 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri Lareida on 04.01.2017.
   */
 
-case class ASrecord(ASnumber: Int, peers: Long, size: Double)
 
-case class WeightedEdge(from: String, to: String, weight: Double)
-
-case class DirectedEdge(from: String, to: String)
-
-object ASNetWeighted {
+object ASNetWeightedDriver {
   private val log = Logger.getLogger(getClass.getName)
   val delimiter = "\t"
   //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
@@ -28,12 +23,7 @@ object ASNetWeighted {
 
 
     // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Country Net")
-      .set("spark.driver.memory","8g")
-      .set("spark.executor.memory", "16g")
-      //.set("spark.driver.cores", "8")
-      //.set("spark.executor.cores", "8")
-      )
+    val sc = new SparkContext(new SparkConf().setAppName("Country Net"))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     val maxTorrents = args(3).toInt
     val year = args(0).toInt
@@ -87,10 +77,12 @@ object ASNetWeighted {
   }
 
   def stage3(stage2: RDD[(String, Iterable[ASrecord])]): RDD[(DirectedEdge,Double)] = {
-      stage2.context.union(
+
+     stage2.values.flatMap(combine).reduceByKey(_+_)
+     /* stage2.context.union(
         stage2.values.collect().map(l =>
           combine(stage2.context.parallelize(l.toSeq))
-        )).reduceByKey(_ + _)
+        )).reduceByKey(_ + _)*/
   }
 
   def matchUnit(unit: Any): Double = unit match {
@@ -100,13 +92,11 @@ object ASNetWeighted {
     case _ => 1
   }
 
-  def combine(swarm: RDD[ASrecord]): RDD[(DirectedEdge, Double)] = {
+  def combine(swarm: Iterable[ASrecord]): Iterable[(DirectedEdge, Double)] = {
     val totalPeers = swarm.map(_.peers).sum
-    val result = swarm.cartesian(swarm).filter{ case (a: ASrecord,b: ASrecord)=> a.ASnumber < b.ASnumber}
-      .map{case (a: ASrecord, b: ASrecord) =>
-        (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
-      }
-    result
+    for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
+      (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
+    }
   }
 
   def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double): Double ={
