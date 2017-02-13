@@ -1,5 +1,3 @@
-import java.util.{Calendar, GregorianCalendar}
-
 import org.apache.log4j.Logger
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
@@ -19,32 +17,21 @@ object ASNetWeightedDriver {
       println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
       sys.exit(1)
     }
-    val debug = if (args.length == 6) args(5).equals("debug") else false
-
-
-    // create Spark context with Spark configuration
-    val sc = new SparkContext(new SparkConf().setAppName("Country Net"))
-    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
-    val maxTorrents = args(3).toInt
     val year = args(0).toInt
     val month = args(1).toInt
     val day=  args(2).toInt
-    val cal = new GregorianCalendar()
-    cal.set(year, month - 1, 1)
-    val days = 1 to cal.getActualMaximum(Calendar.DAY_OF_MONTH)
+    val maxTorrents = args(3).toInt
+
+    // create Spark context with Spark configuration
+    val sc = new SparkContext(new SparkConf().setAppName("AS Net Weighted " + maxTorrents
+      + ' ' + year + '-' + month + '-' +day))
+    val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     log.info("Month: " + month + " Day: " + day)
     val result1 = stage1(sqlContext, year, month, day, maxTorrents)
-    if (debug)
-      result1.count()
+
     val result2 = stage2(result1)
 
-    if (debug)
-      result2.count()
-
     val result3 = stage3(result2)
-
-    if (debug)
-      result3.count()
 
     result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
       .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
