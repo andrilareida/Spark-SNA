@@ -21,38 +21,25 @@ object ASNetWeightedDriver {
     val month = args(1).toInt
     val day=  args(2).toInt
     val maxTorrents = args(3).toInt
-
+    val hours: Range = if(args(5)== "hourly") 0 to 23 else -1 to -1
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("AS Net Weighted " + maxTorrents
       + ' ' + year + '-' + month + '-' +day))
     val sqlContext = new org.apache.spark.sql.hive.HiveContext(sc)
     log.info("Month: " + month + " Day: " + day)
-    val result1 = stage1(sqlContext, year, month, day, maxTorrents)
+    for(hour<-hours) {
+      val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
 
-    val result2 = stage2(result1)
+      val result2 = stage2(result1)
 
-    val result3 = stage3(result2)
+      val result3 = stage3(result2)
 
-    result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
-      .saveAsTextFile(args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day)
-  }
+      val path = if (hour < 0) args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day
+      else args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour
 
-  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int,  maxTorrents: Int): DataFrame = {
-    val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
-      "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
-      "ON ( A.peeruid = B.peeruid " +
-      "AND B.year = A.year " +
-      "AND B.month = A.month " +
-      "AND B.day = A.day ) " +
-      "JOIN torrents as C " +
-      "ON (A.infohash = C.info_hash) " +
-      "AND A.year = " + year + " " +
-      "AND A.month = " + month + " " +
-      "AND A.day = " + day + " " +
-      "AND B.shared between 1 and " + maxTorrents + " " +
-      "AND A.asnumber <> 0 " +
-      "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
-    sqc.sql(query)
+      result3.map(edge => edge._1.from + delimiter + edge._1.to + delimiter + edge._2)
+        .saveAsTextFile(path)
+    }
   }
 
   def stage2(stage1: DataFrame): RDD[(String, Iterable[ASrecord])] = {
@@ -88,5 +75,42 @@ object ASNetWeightedDriver {
 
   def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double): Double ={
     a.peers * b.peers * a.size /( scala.math.pow(1024, 3) * totalPeers)
+  }
+
+  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int,  maxTorrents: Int): DataFrame = {
+    val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
+      "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
+      "ON ( A.peeruid = B.peeruid " +
+      "AND B.year = A.year " +
+      "AND B.month = A.month " +
+      "AND B.day = A.day ) " +
+      "JOIN torrents as C " +
+      "ON (A.infohash = C.info_hash) " +
+      "AND A.year = " + year + " " +
+      "AND A.month = " + month + " " +
+      "AND A.day = " + day + " " +
+      "AND B.shared between 1 and " + maxTorrents + " " +
+      "AND A.asnumber <> 0 " +
+      "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
+    sqc.sql(query)
+  }
+
+  def stage1(sqc: SQLContext, year: Int, month: Int, day: Int, hour: Int, maxTorrents: Int): DataFrame = {
+    val query = "SELECT A.infohash, A.asnumber, count(distinct(A.peeruid)) as peers, C.torrent_size, C.size_unit " +
+      "FROM torrentsperip as A JOIN dailysharedtorrents as B " +
+      "ON ( A.peeruid = B.peeruid " +
+      "AND B.year = A.year " +
+      "AND B.month = A.month " +
+      "AND B.day = A.day ) " +
+      "JOIN torrents as C " +
+      "ON (A.infohash = C.info_hash) " +
+      "AND A.year = " + year + " " +
+      "AND A.month = " + month + " " +
+      "AND A.day = " + day + " " +
+      "AND B.hour = " + hour + " " +
+      "AND B.shared between 1 and " + maxTorrents + " " +
+      "AND A.asnumber <> 0 " +
+      "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
+    sqc.sql(query)
   }
 }
