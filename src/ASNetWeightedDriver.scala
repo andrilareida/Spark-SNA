@@ -107,7 +107,7 @@ object ASNetWeightedDriver {
       "AND A.year = " + year + " " +
       "AND A.month = " + month + " " +
       "AND A.day = " + day + " " +
-      "AND B.hour = " + hour + " " +
+      "AND A.hour = " + hour + " " +
       "AND B.shared between 1 and " + maxTorrents + " " +
       "AND A.asnumber <> 0 " +
       "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
