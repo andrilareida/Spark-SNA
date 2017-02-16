@@ -21,7 +21,8 @@ object ASNetWeightedDriver {
     val month = args(1).toInt
     val day=  args(2).toInt
     val maxTorrents = args(3).toInt
-    val hours: Range = if(args(5).equals("hourly")) 0 to 23 else -1 to -1
+    val hours: Range = if(args(5).equals("hourly")) 0 to 23 else toInt(args(5)) to toInt(args(5))
+
     // create Spark context with Spark configuration
     val sc = new SparkContext(new SparkConf().setAppName("AS Net Weighted " + maxTorrents
       + ' ' + year + '-' + month + '-' +day))
@@ -112,5 +113,13 @@ object ASNetWeightedDriver {
       "AND A.asnumber <> 0 " +
       "GROUP BY A.infohash, A.asnumber, C.torrent_size, C.size_unit"
     sqc.sql(query)
+  }
+
+  def toInt(s: String): Int = {
+    try {
+      s.toInt
+    } catch {
+      case e: Exception => -1
+    }
   }
 }
