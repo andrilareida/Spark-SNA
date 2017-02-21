@@ -7,7 +7,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri Lareida on 04.01.2017.
   */
 
-
+case class ASrecordRatio(ASnumber: Int, peers: Long, size: Double, seeders: Int, leechers: Int)
 object ASNetWeightedDriver {
   private val log = Logger.getLogger(getClass.getName)
   val delimiter = "\t"
@@ -33,15 +33,15 @@ object ASNetWeightedDriver {
     log.info("Month: " + month + " Day: " + day)
     for(hour<-hours) {
       val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
-      val result2 = stage2(result1)
-
       val query = "SELECT infohash, sum(seeder)as seeders, sum(leecher) as leechers " +
         "FROM intervaltrackerstats " +
         "WHERE total<>0 " +
         "AND year = " + year + " " +
         "AND month = " + month + " " +
         "AND day = " + day + " " +
-        "GROUP BY infohash, year, month, day"
+        "GROUP BY infohash"
+
+      val result2 = stage2(result1, sqlContext.sql(query))
 
       val result3 = stage3(result2, sqlContext.sql(query))
 
@@ -53,19 +53,16 @@ object ASNetWeightedDriver {
     }
   }
 
-  def stage2(stage1: DataFrame): RDD[(String, Iterable[ASrecord])] = {
-    stage1.map(
-      record => (record.getString(0), ASrecord(record.getInt(1),
+  def stage2(stage1: DataFrame, ratio: DataFrame): RDD[(String, Iterable[ASrecordRatio])] = {
+    stage1.join(ratio, stage1("infohash") === ratio("infohash")).map(
+      record => (record.getString(0), ASrecordRatio(record.getInt(1),
         record.getLong(2),
-        record.getFloat(3).toDouble * matchUnit(record.getString(4)))))
+        record.getFloat(3).toDouble * matchUnit(record.getString(4)), record.getInt(5), record.getInt(6))))
       .groupByKey()
   }
 
-  def stage3(stage2: RDD[(String, Iterable[ASrecord])], trackerStats: DataFrame): RDD[(DirectedEdge,Double)] = {
-
-
-    stage2.flatMap(x => combine(x._2, x._1, trackerStats)).reduceByKey(_+_)
-
+  def stage3(stage2: RDD[(String, Iterable[ASrecordRatio])], trackerStats: DataFrame): RDD[(DirectedEdge,Double)] = {
+    stage2.values.flatMap(combine).reduceByKey(_+_)
   }
 
   def matchUnit(unit: Any): Double = unit match {
@@ -75,31 +72,19 @@ object ASNetWeightedDriver {
     case _ => 1
   }
 
-  def combine(swarm: Iterable[ASrecord]): Iterable[(DirectedEdge, Double)] = {
+  def combine(swarm: Iterable[ASrecordRatio]): Iterable[(DirectedEdge, Double)] = {
     val totalPeers = swarm.map(_.peers).sum
     for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
       (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
     }
   }
-  def combine(swarm: Iterable[ASrecord], infohash: String, trackerStats: DataFrame): Iterable[(DirectedEdge, Double)] = {
-    val totalPeers = swarm.map(_.peers).sum
-    val stats = trackerStats.filter(trackerStats("infohash") === infohash).select("seeders", "leechers")
 
-    for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
-      (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
-    }
-  }
+  def getWeight(a: ASrecordRatio, b: ASrecordRatio, totalPeers: Double): Double ={
 
-  def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double): Double ={
-
-    a.peers * b.peers * a.size /( scala.math.pow(1024, 3) * totalPeers)
-  }
-  def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double, seeders: Int, leechers: Int): Double ={
-    val ratio = leechers.toFloat / seeders
-    if(ratio == 0){
+    if(a.seeders == 0){
       0
     }else {
-      a.peers * b.peers * a.size * ratio / (scala.math.pow(1024, 3) * totalPeers)
+      (a.peers * b.peers * a.size * a.leechers.toDouble) / (scala.math.pow(1024, 3) * totalPeers * a.seeders)
     }
   }
 
