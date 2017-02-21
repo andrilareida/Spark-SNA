@@ -84,7 +84,7 @@ object ASNetWeightedDriver {
     if(a.seeders == 0){
       0
     }else {
-      (a.peers * b.peers * a.size * a.leechers.toDouble) / (scala.math.pow(1024, 3) * totalPeers * a.seeders)
+      (a.peers * b.peers * a.size * a.leechers.toDouble) / (scala.math.pow(1024, 3) * totalPeers * (a.seeders+a.leechers))
     }
   }
 
