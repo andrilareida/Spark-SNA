@@ -1,6 +1,3 @@
-
-
-
 /**
   * Created by Andri on 06.02.2017.
   */
@@ -48,9 +45,13 @@ class ASNetWeightedTest2 extends SparkBaseTest{
       "infohash9,3,10,1"
     ).map(FakeHiveASObject.fromCSV))
 
-    val res = ASNetWeightedDriver.stage2(input)
 
-    val edges = ASNetWeightedDriver.stage3(res)
+    val res = ASNetWeightedDriver.stage2(input)
+    val stats = sqlContext.createDataFrame(
+      Seq("infohash1,200,300","infohash2,100,100","infohash9,100,50")
+        .map(FakeRatioObject.fromCSV))
+
+    val edges = ASNetWeightedDriver.stage3(res, stats)
 
     assert(edges.count() == 4)
 

@@ -68,16 +68,16 @@ object CountryNetWeighted {
     })
   }
 
-  def permutation(iter: Iterable[WeightedCountry]): Array[Edge] = {
+  def permutation(iter: Iterable[WeightedCountry]): Array[CustomEdge] = {
     val list = iter.toArray[WeightedCountry]
-    var s = ArrayBuffer.empty[Edge]
+    var s = ArrayBuffer.empty[CustomEdge]
     for (x <- 0 to (list.length - 2)) {
       val first = list(x)
       list.drop(x + 1).foreach(blah => {
         if (first.country.compareTo(blah.country) < 0) {
-          s += Edge(first.country, blah.country, Math.min(first.weight, blah.weight))
+          s += CustomEdge(first.country, blah.country, Math.min(first.weight, blah.weight))
         } else if (first.country.compareTo(blah.country) > 0) {
-          s += Edge(blah.country, first.country, Math.min(first.weight, blah.weight))
+          s += CustomEdge(blah.country, first.country, Math.min(first.weight, blah.weight))
         }
       })
     }

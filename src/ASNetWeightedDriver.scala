@@ -11,15 +11,18 @@ import org.apache.spark.{SparkConf, SparkContext}
 object ASNetWeightedDriver {
   private val log = Logger.getLogger(getClass.getName)
   val delimiter = "\t"
+  var year: Int= _
+  var month: Int = _
+  var day: Int =  _
   //Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath
   def main(args: Array[String]) {
     if (args.length < 5) {
       println("Expected in array: 0=year, 1=month-from, 2=month-to, 3=maxTorrents, 4=delimiter, 5=outputBasePath")
       sys.exit(1)
     }
-    val year = args(0).toInt
-    val month = args(1).toInt
-    val day=  args(2).toInt
+    year = args(0).toInt
+    month = args(1).toInt
+    day=  args(2).toInt
     val maxTorrents = args(3).toInt
     val hours: Range = if(args(5).equals("hourly")) 0 to 23 else toInt(args(5)) to toInt(args(5))
 
@@ -30,10 +33,17 @@ object ASNetWeightedDriver {
     log.info("Month: " + month + " Day: " + day)
     for(hour<-hours) {
       val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
-
       val result2 = stage2(result1)
 
-      val result3 = stage3(result2)
+      val query = "SELECT infohash, sum(seeder)as seeders, sum(leecher) as leechers" +
+        "FROM intervaltrackerstats " +
+        "WHERE total<>0 " +
+        "AND year = " + year + " " +
+        "AND month = " + month + " " +
+        "AND day = " + day + " " +
+        "GROUP BY infohash, year, month, day;"
+
+      val result3 = stage3(result2, sqlContext.sql(query))
 
       val path = if (hour < 0) args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day
       else args(4) + "/maxtorrents" + maxTorrents + "/" + month + "/" + day + "/" + hour
@@ -51,13 +61,11 @@ object ASNetWeightedDriver {
       .groupByKey()
   }
 
-  def stage3(stage2: RDD[(String, Iterable[ASrecord])]): RDD[(DirectedEdge,Double)] = {
+  def stage3(stage2: RDD[(String, Iterable[ASrecord])], trackerStats: DataFrame): RDD[(DirectedEdge,Double)] = {
 
-     stage2.values.flatMap(combine).reduceByKey(_+_)
-     /* stage2.context.union(
-        stage2.values.collect().map(l =>
-          combine(stage2.context.parallelize(l.toSeq))
-        )).reduceByKey(_ + _)*/
+
+    stage2.flatMap(x => combine(x._2, x._1, trackerStats)).reduceByKey(_+_)
+
   }
 
   def matchUnit(unit: Any): Double = unit match {
@@ -73,9 +81,43 @@ object ASNetWeightedDriver {
       (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
     }
   }
+  def combine(swarm: Iterable[ASrecord], infohash: String, trackerStats: DataFrame): Iterable[(DirectedEdge, Double)] = {
+    val totalPeers = swarm.map(_.peers).sum
+    val stats = trackerStats.filter(trackerStats("infohash") === infohash).select("seeders", "leechers")
+
+    for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
+      (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
+    }
+  }
+
+  def combine(swarm: Iterable[ASrecord], infohash: String, hour: Int): Iterable[(DirectedEdge, Double)] = {
+    val totalPeers = swarm.map(_.peers).sum
+    val query = "SELECT sum(seeder), sum(leecher) " +
+      "FROM intervaltrackerstats " +
+      "WHERE total<>0 " +
+      "AND infohash = " + infohash + " " +
+      "AND year = " + year + " " +
+      "AND month = " + month + " " +
+      "AND day = " + day + " " +
+      "AND day = " + hour + " " +
+      "GROUP BY infohash, year, month, day;"
+
+    for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
+      (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
+    }
+  }
 
   def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double): Double ={
+
     a.peers * b.peers * a.size /( scala.math.pow(1024, 3) * totalPeers)
+  }
+  def getWeight(a: ASrecord, b: ASrecord, totalPeers: Double, seeders: Int, leechers: Int): Double ={
+    val ratio = leechers.toFloat / seeders
+    if(ratio == 0){
+      0
+    }else {
+      a.peers * b.peers * a.size * ratio / (scala.math.pow(1024, 3) * totalPeers)
+    }
   }
 
   def stage1(sqc: SQLContext, year: Int, month: Int, day: Int,  maxTorrents: Int): DataFrame = {
