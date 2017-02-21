@@ -35,7 +35,7 @@ object ASNetWeightedDriver {
       val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
       val result2 = stage2(result1)
 
-      val query = "SELECT infohash, sum(seeder)as seeders, sum(leecher) as leechers" +
+      val query = "SELECT infohash, sum(seeder)as seeders, sum(leecher) as leechers " +
         "FROM intervaltrackerstats " +
         "WHERE total<>0 " +
         "AND year = " + year + " " +
@@ -84,23 +84,6 @@ object ASNetWeightedDriver {
   def combine(swarm: Iterable[ASrecord], infohash: String, trackerStats: DataFrame): Iterable[(DirectedEdge, Double)] = {
     val totalPeers = swarm.map(_.peers).sum
     val stats = trackerStats.filter(trackerStats("infohash") === infohash).select("seeders", "leechers")
-
-    for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
-      (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
-    }
-  }
-
-  def combine(swarm: Iterable[ASrecord], infohash: String, hour: Int): Iterable[(DirectedEdge, Double)] = {
-    val totalPeers = swarm.map(_.peers).sum
-    val query = "SELECT sum(seeder), sum(leecher) " +
-      "FROM intervaltrackerstats " +
-      "WHERE total<>0 " +
-      "AND infohash = " + infohash + " " +
-      "AND year = " + year + " " +
-      "AND month = " + month + " " +
-      "AND day = " + day + " " +
-      "AND day = " + hour + " " +
-      "GROUP BY infohash, year, month, day;"
 
     for (a <- swarm; b <- swarm if a.ASnumber < b.ASnumber ) yield {
       (DirectedEdge(a.ASnumber.toString, b.ASnumber.toString),  getWeight(a,b,totalPeers))
