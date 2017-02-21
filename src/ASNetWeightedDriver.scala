@@ -41,7 +41,7 @@ object ASNetWeightedDriver {
         "AND year = " + year + " " +
         "AND month = " + month + " " +
         "AND day = " + day + " " +
-        "GROUP BY infohash, year, month, day;"
+        "GROUP BY infohash, year, month, day"
 
       val result3 = stage3(result2, sqlContext.sql(query))
 
