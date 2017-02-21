@@ -55,9 +55,9 @@ object ASNetWeightedDriver {
 
   def stage2(stage1: DataFrame, ratio: DataFrame): RDD[(String, Iterable[ASrecordRatio])] = {
     stage1.join(ratio, stage1("infohash") === ratio("infohash")).select().map(
-      record => (record.getString(0), ASrecordRatio(record.getInt(1),
-        record.getLong(2),
-        record.getFloat(3).toDouble * matchUnit(record.getString(4)), record.getInt(6), record.getInt(7))))
+      row => (row.getAs[String]("infohash"), ASrecordRatio(row.getAs[Int]("asnumber"),
+        row.getAs[Long]("peers"),
+        row.getAs[Float]("torrent_size").toDouble * matchUnit(row.getAs[String]("size_unit")), row.getAs[Int]("seeders"), row.getAs[Int]("leechers"))))
       .groupByKey()
   }
 
