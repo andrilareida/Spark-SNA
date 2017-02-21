@@ -7,7 +7,7 @@ import org.apache.spark.{SparkConf, SparkContext}
   * Created by Andri Lareida on 04.01.2017.
   */
 
-case class ASrecordRatio(ASnumber: Int, peers: Long, size: Double, seeders: Int, leechers: Int)
+case class ASrecordRatio(ASnumber: Int, peers: Long, size: Double, seeders: Long, leechers: Long)
 object ASNetWeightedDriver {
   private val log = Logger.getLogger(getClass.getName)
   val delimiter = "\t"
@@ -57,7 +57,7 @@ object ASNetWeightedDriver {
     stage1.join(ratio, stage1("infohash") === ratio("info_hash")).map(
       row => (row.getAs[String]("infohash"), ASrecordRatio(row.getAs[Int]("asnumber"),
         row.getAs[Long]("peers"),
-        row.getAs[Float]("torrent_size").toDouble * matchUnit(row.getAs[String]("size_unit")), row.getAs[Int]("seeders"), row.getAs[Int]("leechers"))))
+        row.getAs[Float]("torrent_size").toDouble * matchUnit(row.getAs[String]("size_unit")), row.getAs[Long]("seeders"), row.getAs[Long]("leechers"))))
       .groupByKey()
   }
 

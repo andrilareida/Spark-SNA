@@ -2,7 +2,7 @@
 /**
   * Created by Andri on 07.02.2017.
   */
-case class FakeHiveASObject(infohash: String, asnumber: Int, peers: Long, size: Float, unit: String)
+case class FakeHiveASObject(infohash: String, asnumber: Int, peers: Long, torrent_size: Float, size_unit: String)
 
 object FakeHiveASObject {
   def fromCSV(line: String):FakeHiveASObject = {
