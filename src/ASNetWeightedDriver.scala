@@ -33,7 +33,7 @@ object ASNetWeightedDriver {
     log.info("Month: " + month + " Day: " + day)
     for(hour<-hours) {
       val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
-      val query = "SELECT infohash, sum(seeder)as seeders, sum(leecher) as leechers " +
+      val query = "SELECT info_hash, sum(seeder)as seeders, sum(leecher) as leechers " +
         "FROM intervaltrackerstats " +
         "WHERE total<>0 " +
         "AND year = " + year + " " +
@@ -54,7 +54,7 @@ object ASNetWeightedDriver {
   }
 
   def stage2(stage1: DataFrame, ratio: DataFrame): RDD[(String, Iterable[ASrecordRatio])] = {
-    stage1.join(ratio, stage1("infohash") === ratio("infohash")).select().map(
+    stage1.join(ratio, stage1("infohash") === ratio("info_hash")).map(
       row => (row.getAs[String]("infohash"), ASrecordRatio(row.getAs[Int]("asnumber"),
         row.getAs[Long]("peers"),
         row.getAs[Float]("torrent_size").toDouble * matchUnit(row.getAs[String]("size_unit")), row.getAs[Int]("seeders"), row.getAs[Int]("leechers"))))
