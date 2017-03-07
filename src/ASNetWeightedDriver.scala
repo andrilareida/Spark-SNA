@@ -34,7 +34,7 @@ object ASNetWeightedDriver {
     for(hour<-hours) {
       val result1 = if (hour < 0) stage1(sqlContext, year, month, day, maxTorrents) else stage1(sqlContext, year, month, day, hour, maxTorrents)
       val query = "SELECT infohash as info_hash, sum(seeder)as seeders, sum(leecher) as leechers " +
-        "FROM intervaltrackerstats2 " +
+        "FROM intervaltrackerstats " +
         "WHERE total<>0 " +
         "AND year = " + year + " " +
         "AND month = " + month + " " +
